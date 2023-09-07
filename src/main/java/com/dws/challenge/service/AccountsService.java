@@ -55,16 +55,20 @@ public class AccountsService {
     }
 
     private void calculateDoTransfers(Account fromAcc, Account toAcc, BigDecimal amount) {
-        Object lockFAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? fromAcc : toAcc;
-        Object lockTAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? toAcc : fromAcc;
+        try {
+            Object lockFAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? fromAcc : toAcc;
+            Object lockTAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? toAcc : fromAcc;
 
-        synchronized (lockFAcc) {
-            synchronized (lockTAcc) {
-                withdraw(fromAcc, amount);
-                deposit(toAcc, amount);
+            synchronized (lockFAcc) {
+                synchronized (lockTAcc) {
+                    withdraw(fromAcc, amount);
+                    deposit(toAcc, amount);
+                }
             }
+            log.info("transfer complete, accounts updated");
+        } catch (Exception e) {
+            log.error("Exception in calculateDoTransfers");
         }
-        log.info("transfer complete, accounts updated");
     }
 
     public void withdraw(Account fromAcc, BigDecimal amount) {

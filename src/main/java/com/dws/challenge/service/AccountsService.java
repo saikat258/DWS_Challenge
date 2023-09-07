@@ -43,10 +43,7 @@ public class AccountsService {
         try {
             Account fromAcc = getAccount(accountFromId);
             Account toAcc = getAccount(accountToId);
-            if (fromAcc.getBalance().compareTo(BigDecimal.ZERO) > 0) {
-                //calculateDoTransfers(fromAcc, toAcc, amount);
-                calculateDoTransfers1(fromAcc, toAcc, amount);
-            }
+            calculateDoTransfers(fromAcc, toAcc, amount);
             accounts.add(this.accountsRepository.getAccount(accountFromId));
             accounts.add(this.accountsRepository.getAccount(accountToId));
             log.info("accountList accounts.size() {}", accounts.size());
@@ -57,9 +54,10 @@ public class AccountsService {
         return accounts;
     }
 
-    private void calculateDoTransfers1(Account fromAcc, Account toAcc, BigDecimal amount) {
-        final Object lockFAcc = fromAcc.getAccountId();
-        final Object lockTAcc = toAcc.getAccountId();
+    private void calculateDoTransfers(Account fromAcc, Account toAcc, BigDecimal amount) {
+        Object lockFAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? fromAcc : toAcc;
+        Object lockTAcc = fromAcc.getAccountId().compareToIgnoreCase(toAcc.getAccountId()) < 0 ? toAcc : fromAcc;
+
         synchronized (lockFAcc) {
             synchronized (lockTAcc) {
                 withdraw(fromAcc, amount);

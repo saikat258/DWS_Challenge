@@ -20,7 +20,7 @@ public class AccountsService {
 
     private final NotificationService notificationService;
 
-    private static final String TRANSFER_DESC_TO_DEBTOR = "Your account has been debited by $ from account ";
+    private static final String TRANSFER_DESC_TO_DEBTOR = "UPDATE: Your account has been debited by $ from account ";
 
     private static final String TRANSFER_DESC_TO_CREDITOR = "UPDATE: $ has been debited from your account as a payment to account ";
 
@@ -44,7 +44,8 @@ public class AccountsService {
             Account fromAcc = getAccount(accountFromId);
             Account toAcc = getAccount(accountToId);
             if (fromAcc.getBalance().compareTo(BigDecimal.ZERO) > 0) {
-                calculateDoTransfers(fromAcc, toAcc, amount);
+                //calculateDoTransfers(fromAcc, toAcc, amount);
+                calculateDoTransfers1(fromAcc, toAcc, amount);
             }
             accounts.add(this.accountsRepository.getAccount(accountFromId));
             accounts.add(this.accountsRepository.getAccount(accountToId));
@@ -56,20 +57,38 @@ public class AccountsService {
         return accounts;
     }
 
-    synchronized void calculateDoTransfers(Account fromAcc,
-                                           Account toAcc, BigDecimal amount) {
-        BigDecimal balanceInFromAcc = fromAcc.getBalance();
-        BigDecimal balanceInToAcc = toAcc.getBalance();
-        log.info("balanceInFromAcc = {}, balanceInToAcc = {}", balanceInFromAcc, balanceInToAcc);
-        if (balanceInFromAcc.compareTo(amount) > 0) {
-            balanceInFromAcc = balanceInFromAcc.subtract(amount);
-            balanceInToAcc = balanceInToAcc.add(amount);
-            fromAcc.setBalance(balanceInFromAcc);
-            this.accountsRepository.updateAccount(fromAcc);
-            toAcc.setBalance(balanceInToAcc);
-            this.accountsRepository.updateAccount(toAcc);
+    private void calculateDoTransfers1(Account fromAcc, Account toAcc, BigDecimal amount) {
+        final Object lockFAcc = fromAcc.getAccountId();
+        final Object lockTAcc = toAcc.getAccountId();
+        synchronized (lockFAcc) {
+            synchronized (lockTAcc) {
+                withdraw(fromAcc, amount);
+                deposit(toAcc, amount);
+            }
         }
         log.info("transfer complete, accounts updated");
+    }
+
+    public void withdraw(Account fromAcc, BigDecimal amount) {
+        BigDecimal balance = fromAcc.getBalance();
+        log.info("balanceInFromAcc = {}", balance);
+        log.info("amount to withdraw {}", amount);
+        if (balance.compareTo(amount) > 0) {
+            balance = balance.subtract(amount);
+            fromAcc.setBalance(balance);
+            this.accountsRepository.updateAccount(fromAcc);
+        } else {
+            log.info("Insufficient balance in account");
+        }
+    }
+
+    public void deposit(Account toAcc, BigDecimal amount) {
+        BigDecimal balance = toAcc.getBalance();
+        log.info("balanceInToAcc = {}", balance);
+        log.info("amount to deposit {}", amount);
+        balance = balance.add(amount);
+        toAcc.setBalance(balance);
+        this.accountsRepository.updateAccount(toAcc);
     }
 
     private void sendNotifications(Account fromAcc, Account toAcc, BigDecimal amount) {

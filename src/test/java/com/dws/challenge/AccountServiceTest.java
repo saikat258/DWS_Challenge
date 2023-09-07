@@ -3,6 +3,7 @@ package com.dws.challenge;
 import com.dws.challenge.domain.Account;
 import com.dws.challenge.repository.AccountsRepository;
 import com.dws.challenge.service.AccountsService;
+import com.dws.challenge.service.NotificationService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,16 +29,26 @@ public class AccountServiceTest {
     AccountsService accountsService;
 
     @Mock
-    AccountsRepository accountsRepository;
+    private AccountsRepository accountsRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     Account fromAcc;
 
     Account toAcc;
 
+    String TRANSFER_DESC_TO_DEBTOR;
+
+    String TRANSFER_DESC_TO_CREDITOR;
+
     @BeforeEach
     public void init() {
         fromAcc = new Account("123A001", BigDecimal.valueOf(120000));
         toAcc = new Account("123A002", BigDecimal.valueOf(100000));
+        TRANSFER_DESC_TO_DEBTOR = "UPDATE: Your account has been debited by $ from account ";
+        TRANSFER_DESC_TO_CREDITOR = "UPDATE: $ has been debited from your account as a payment to account ";
+
     }
 
     @Test
@@ -73,6 +84,14 @@ public class AccountServiceTest {
         Mockito.doNothing().when(accountsRepository).updateAccount(fromAcc);
         accountsService.withdraw(fromAcc, BigDecimal.valueOf(10000));
         Assertions.assertTrue(output.getOut().contains("Insufficient balance in account"));
+    }
+
+    @Test
+    public void sendNotificationTest(CapturedOutput output) {
+        Mockito.doNothing().when(notificationService).notifyAboutTransfer(fromAcc, TRANSFER_DESC_TO_DEBTOR);
+        Mockito.doNothing().when(notificationService).notifyAboutTransfer(toAcc, TRANSFER_DESC_TO_CREDITOR);
+        accountsService.sendNotifications(fromAcc, toAcc, BigDecimal.valueOf(10000));
+        Assertions.assertTrue(output.getOut().contains("Notifications sent"));
     }
 
     @AfterAll

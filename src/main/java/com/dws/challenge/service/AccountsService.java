@@ -93,7 +93,7 @@ public class AccountsService {
         this.accountsRepository.updateAccount(toAcc);
     }
 
-    private void sendNotifications(Account fromAcc, Account toAcc, BigDecimal amount) {
+    public void sendNotifications(Account fromAcc, Account toAcc, BigDecimal amount) {
         try {
             this.notificationService.notifyAboutTransfer(toAcc,
                     TRANSFER_DESC_TO_DEBTOR.replace("$", String.valueOf(amount)) + fromAcc.getAccountId());

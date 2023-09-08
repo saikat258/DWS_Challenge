@@ -1,6 +1,7 @@
 package com.dws.challenge.web;
 
 import com.dws.challenge.domain.Account;
+import com.dws.challenge.domain.TransferRequest;
 import com.dws.challenge.exception.DuplicateAccountIdException;
 import com.dws.challenge.service.AccountsService;
 import lombok.extern.slf4j.Slf4j;
@@ -8,12 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
@@ -50,13 +46,13 @@ public class AccountsController {
         return this.accountsService.getAccount(accountId);
     }
 
-    @PostMapping("/transfer/{accountFromId}/{accountToId}/{amount}")
-    public ResponseEntity<Object> doTransfer(@PathVariable String accountFromId,
-                                             @PathVariable String accountToId,
-                                             @PathVariable BigDecimal amount) {
-        log.info("Transfer amount {} from account {} to account {}", amount, accountFromId, accountToId);
-        if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            List<Account> accounts = this.accountsService.doTransfer(accountFromId, accountToId, amount);
+    @PostMapping("/transfer")
+    public ResponseEntity<Object> doTransfer(@RequestBody @Valid TransferRequest transferRequest) {
+        log.info("Transfer amount {} from account {} to account {}", transferRequest.getAmount(),
+                transferRequest.getFromAccountId(), transferRequest.getToAccountId());
+        if (transferRequest.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            List<Account> accounts = this.accountsService.doTransfer(transferRequest.getFromAccountId(),
+                    transferRequest.getToAccountId(), transferRequest.getAmount());
             return new ResponseEntity<>(accounts, HttpStatus.OK);
         } else {
             return new ResponseEntity<>("Negative amount cannot be transferred", HttpStatus.BAD_REQUEST);
